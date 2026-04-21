@@ -1,8 +1,3 @@
-"""
-Student Routes — EduTrack
-Fields: name, batch, attendance, study_hours, prev_score, assignments_completed
-Extra: GET /students/<id>/analysis  → individual student analysis
-"""
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
@@ -37,7 +32,6 @@ def _sync_and_analyse(conn):
         conn.commit()
     return summary
 
-# ── POST /students ─────────────────────────────────────────────────────────────
 @student_bp.route('/students', methods=['POST'])
 def add_student():
     data = request.get_json()
@@ -62,7 +56,6 @@ def add_student():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── GET /students ──────────────────────────────────────────────────────────────
 @student_bp.route('/students', methods=['GET'])
 def get_students():
     try:
@@ -72,8 +65,6 @@ def get_students():
         return jsonify(students), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-# ── GET /students/<id> ─────────────────────────────────────────────────────────
 @student_bp.route('/students/<int:sid>', methods=['GET'])
 def get_student(sid):
     try:
@@ -87,7 +78,6 @@ def get_student(sid):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── GET /students/<id>/analysis ── Individual analysis ─────────────────────────
 @student_bp.route('/students/<int:sid>/analysis', methods=['GET'])
 def individual_analysis(sid):
     try:
@@ -102,7 +92,6 @@ def individual_analysis(sid):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── PUT /students/<id> ─────────────────────────────────────────────────────────
 @student_bp.route('/students/<int:sid>', methods=['PUT'])
 def update_student(sid):
     data = request.get_json()
@@ -124,7 +113,6 @@ def update_student(sid):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── DELETE /students/<id> ──────────────────────────────────────────────────────
 @student_bp.route('/students/<int:sid>', methods=['DELETE'])
 def delete_student(sid):
     try:
@@ -140,19 +128,16 @@ def delete_student(sid):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ── GET /analysis ──────────────────────────────────────────────────────────────
 @student_bp.route('/analysis', methods=['GET'])
 def get_analysis():
     try: return jsonify(run_analysis()), 200
     except Exception as e: return jsonify({'error': str(e)}), 500
 
-# ── GET /weak-students ─────────────────────────────────────────────────────────
 @student_bp.route('/weak-students', methods=['GET'])
 def weak_students():
     try: return jsonify(get_weak_students()), 200
     except Exception as e: return jsonify({'error': str(e)}), 500
 
-# ── GET /top-students ──────────────────────────────────────────────────────────
 @student_bp.route('/top-students', methods=['GET'])
 def top_students():
     try: return jsonify(get_top_students()), 200
