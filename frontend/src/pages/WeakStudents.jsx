@@ -8,7 +8,7 @@ export default function WeakStudents() {
   const [modalId, setModalId]   = useState(null)
 
   useEffect(() => {
-    api.get('/weak-students').then(r=>{setStudents(r.data);setError('')}).catch(()=>setError('Failed to fetch'))
+    api.get('/weak-students').then(r=>{setStudents(r.data);setError('')}).catch((e)=>setError('Failed to fetch: ' + (e?.response?.data?.error || e.message)))
   }, [])
 
   return (
