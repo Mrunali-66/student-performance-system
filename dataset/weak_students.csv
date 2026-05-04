@@ -1,1 +1,6 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
+<<<<<<< HEAD,,,,,,,0.0,Weak
+=======,,,,,,,0.0,Weak
+13,Aditi Joshi,Python,40.0,6.0,42.0,3.0,39.6,Weak
+14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,17.0,Weak
+>>>>>>> ef55940 (git commit),,,,,,,0.0,Weak

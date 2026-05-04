@@ -1,2 +1,12 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
+<<<<<<< HEAD,,,,,,,0.0,Weak
 4,Mrunali Maheshsing Hajare,Data Science,82.0,18.0,85.0,9.0,90.1,Top Performer
+=======,,,,,,,0.0,Weak
+4,Mrunali Maheshsing Hajare,Data Science,82.0,18.0,85.0,8.0,90.1,Top Performer
+10,Anjali Babar,Python,30.0,14.0,66.0,9.0,64.8,Average
+11,Rohit Deshmukh,Machine Learning,88.0,20.0,92.0,9.0,94.0,Top Performer
+12,Pooja Kulkarni,Data science,72.0,16.0,78.0,6.0,81.0,Top Performer
+13,Aditi Joshi,Python,40.0,6.0,42.0,3.0,39.6,Weak
+14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,17.0,Weak
+15,Sanjana Patil,Java Development,50.0,15.0,65.0,6.0,69.0,Average
+>>>>>>> ef55940 (git commit),,,,,,,0.0,Weak

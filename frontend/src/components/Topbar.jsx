@@ -1,5 +1,6 @@
 import React from 'react'
 import { useLocation } from 'react-router-dom'
+import { useTheme } from '../ThemeContext'
 
 const PAGES = {
   '/':              ['Home','Dashboard'],
@@ -15,6 +16,8 @@ const dateStr  = () => new Date().toLocaleDateString('en-US',{weekday:'long',day
 export default function Topbar() {
   const {pathname} = useLocation()
   const [bc, title] = PAGES[pathname] || ['Home','EduTrack']
+  const { isDark, toggle } = useTheme()
+
   return (
     <header className="topbar">
       <div>
@@ -30,6 +33,10 @@ export default function Topbar() {
       </div>
       <div className="topbar-right">
         <div className="live-badge"><div className="live-dot"/>Live Data</div>
+        <button className="theme-toggle" onClick={toggle} title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}>
+          {isDark ? '☀️' : '🌙'}
+          <span>{isDark ? 'Light' : 'Dark'}</span>
+        </button>
         <div className="topbar-greeting">
           <strong>{greeting()}</strong>
           <small>{dateStr()}</small>

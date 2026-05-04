@@ -14,6 +14,19 @@
   --r:10px;--r2:14px;
   --sw:220px;
 }
+
+/* ── Light mode overrides ── */
+html[data-theme="light"] {
+  --bg:#f0f4f8;--bg2:#e8edf3;--surface:#ffffff;--surface2:#f7f9fc;--surface3:#edf1f7;
+  --border:#cbd5e130;--border2:#3b82f625;
+  --cyan:#0891b2;--cyan-d:#e0f7fa;--cyan-g:rgba(8,145,178,0.07);
+  --blue:#2563eb;--blue-d:#dbeafe;
+  --green:#059669;--green-d:#d1fae5;
+  --yellow:#d97706;--yellow-d:#fef3c7;
+  --red:#dc2626;--red-d:#fee2e2;
+  --purple:#7c3aed;--purple-d:#ede9fe;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+}
 html{scroll-behavior:smooth}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -54,6 +67,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .topbar-greeting strong{display:block;font-size:12px;font-weight:600;text-align:right}
 .topbar-greeting small{font-size:10px;color:var(--text3)}
 .avatar{width:34px;height:34px;background:linear-gradient(135deg,var(--cyan),var(--blue));border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+
+/* Theme toggle */
+.theme-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border2);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.theme-toggle:hover{background:var(--surface3);color:var(--text);border-color:var(--cyan)}
+.theme-toggle span{font-size:11px}
 
 /* Page */
 .page{padding:28px;flex:1}

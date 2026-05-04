@@ -17,7 +17,11 @@ export default function Students() {
   const [editData, setEditData] = useState({})
   const [modalId, setModalId]   = useState(null)
 
-  const load = () => api.get('/students').then(r=>{setStudents(r.data);setError('')}).catch(()=>setError('Failed to fetch'))
+  const load = () => api.get('/students?limit=1000').then(r=>{
+    const data = Array.isArray(r.data) ? r.data : (r.data.students || r.data.data || [])
+    setStudents(data)
+    setError('')
+  }).catch(()=>setError('Failed to fetch'))
   useEffect(()=>{load()},[])
 
   const filtered = students.filter(s=>
