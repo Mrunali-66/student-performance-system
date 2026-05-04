@@ -26,7 +26,6 @@ export default function Sidebar({ apiOk }) {
             className={({isActive}) => `nav-item${isActive?' active':''}`}>
             <span style={{fontSize:15}}>{n.icon}</span>
             {n.label}
-            {({isActive}) => isActive ? <span className="nav-dot"/> : null}
           </NavLink>
         ))}
       </nav>
