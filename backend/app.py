@@ -1,10 +1,6 @@
-# backend/app.py
 import sys, os
-
-# Add project root to path so `ml` package is importable
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, BASE_DIR)
-sys.path.insert(1, os.path.dirname(__file__))   # backend/ itself for models/, utils/
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))          # backend/
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # project root (for ml/)
 
 from flask import Flask
 from flask_cors import CORS

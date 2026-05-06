@@ -7,6 +7,7 @@ import Students   from './pages/Students'
 import WeakStudents from './pages/WeakStudents'
 import AddStudent from './pages/AddStudent'
 import PredictScore from './pages/PredictScore'
+import Analytics from './pages/Analytics'
 import api from './utils/api'
 
 export default function App() {
@@ -23,6 +24,7 @@ export default function App() {
         <Topbar/>
         <Routes>
           <Route path="/"              element={<Dashboard/>}/>
+          <Route path="/analytics"     element={<Analytics/>}/>
           <Route path="/students"      element={<Students/>}/>
           <Route path="/weak-students" element={<WeakStudents/>}/>
           <Route path="/add-student"   element={<AddStudent/>}/>

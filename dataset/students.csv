@@ -1,11 +1,12 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
-4,Mrunali Maheshsing Hajare,Data Science,82.0,18.0,85.0,8.0,84.35,Top Performer
-10,Anjali Babar,Python,30.0,14.0,66.0,9.0,59.6,Average
-11,Rohit Deshmukh,Machine Learning,88.0,20.0,92.0,9.0,92.1,Top Performer
-12,Pooja Kulkarni,Data science,72.0,16.0,78.0,6.0,73.9,Average
-13,Aditi Joshi,Python,40.0,6.0,42.0,3.0,37.2,Weak
-14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,16.25,Weak
-15,Sanjana Patil,Java Development,50.0,15.0,65.0,6.0,61.75,Average
-16,Pranali Patil,Java Development,20.0,2.0,15.0,1.0,14.75,Weak
-20,Pranav Jadhav,Python Development,75.0,16.0,80.0,8.0,78.5,Top Performer
-22,Asmita Kale,Machine Learning,80.0,19.0,88.0,9.0,87.3,Top Performer
+4,Mrunali Maheshsing Hajare,Data Science,82.0,18.0,85.0,8.0,90.1,Top Performer
+10,Anjali Babar,Python Development,30.0,14.0,66.0,9.0,64.8,Average
+13,Aditi Joshi,Python Development,40.0,6.0,42.0,3.0,39.6,Weak
+14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,17.0,Weak
+15,Sanjana Patil,Java Development,50.0,15.0,65.0,6.0,69.0,Average
+16,Pranali Patil,Java Development,20.0,2.0,15.0,1.0,15.5,Weak
+20,Pranav Jadhav,Python Development,75.0,16.0,80.0,8.0,85.5,Top Performer
+22,Asmita Kale,Machine Learning,80.0,19.0,88.0,9.0,90.4,Top Performer
+25,Payal Babar,Data Science,40.0,6.5,60.0,4.0,47.75,Average
+26,Shweta  Kumbhar,Machine Learning,45.0,7.5,56.0,1.0,43.55,Average
+27,Sujay Mane,Java Development,20.0,1.0,18.0,1.0,14.9,Weak
