@@ -1,10 +1,3 @@
-"""
-ML Analysis — EduTrack Student Progress System
-Fields: attendance, study_hours, prev_score, assignments_completed
-Performance formula:
-  score = attendance*0.30 + min(study_hours*1.5,25) + prev_score*0.30 + min(assignments*2,15)
-Categories: < 40 Weak | 40-75 Average | > 75 Top Performer
-"""
 import pandas as pd
 import os
 
