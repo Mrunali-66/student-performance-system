@@ -1,111 +1,201 @@
-import pandas as pd
+"""
+ml/analyze_students.py  —  EduTrack Dataset Analysis Engine (standalone)
+
+Reads students.csv from the same directory, runs predictions via predictor.py,
+and writes categorised CSVs (weak / average / top).
+
+Usage:
+    python analyze_students.py                   # full analysis
+    python analyze_students.py --student 3       # individual by CSV row index
+    python analyze_students.py --export          # regenerate category CSVs
+
+Feature changelog:
+    - Replaced assignment_score with assignment_submitted (0-10)
+    - Removed study_hours from required feature set
+    - Updated get_individual_analysis to use new field names
+    - Updated _DEFAULTS and _REQUIRED_FEATURES accordingly
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
 import os
+from pathlib import Path
+from typing import Any
 
-BASE_DIR    = os.path.join(os.path.dirname(__file__), '..', 'dataset')
-INPUT_CSV   = os.path.join(BASE_DIR, 'students.csv')
-WEAK_CSV    = os.path.join(BASE_DIR, 'weak_students.csv')
-AVERAGE_CSV = os.path.join(BASE_DIR, 'average_students.csv')
-TOP_CSV     = os.path.join(BASE_DIR, 'top_students.csv')
+import pandas as pd
 
-def calculate_performance(row):
-    att   = float(row.get('attendance', 0))
-    study = float(row.get('study_hours', 0))
-    prev  = float(row.get('prev_score', 0))
-    asgn  = float(row.get('assignments_completed', 0))
-    score = att * 0.30 + min(study * 1.5, 25) + prev * 0.30 + min(asgn * 2, 15)
-    return round(min(100, max(0, score)), 2)
+from predictor import (
+    predict_single,
+    predict_bulk,
+    performance_score,
+    label_from_score,
+    LABELS,
+)
 
-def categorize(score):
-    if score < 40:   return 'Weak'
-    elif score <= 75: return 'Average'
-    else:             return 'Top Performer'
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+_DIR        = Path(__file__).resolve().parent
+INPUT_CSV   = _DIR / "students.csv"
+WEAK_CSV    = _DIR / "weak_students.csv"
+AVERAGE_CSV = _DIR / "average_students.csv"
+TOP_CSV     = _DIR / "top_students.csv"
 
-def get_individual_analysis(student):
-    """Return detailed analysis for a single student dict."""
-    score = calculate_performance(student)
-    cat   = categorize(score)
-    att   = float(student.get('attendance', 0))
-    study = float(student.get('study_hours', 0))
-    prev  = float(student.get('prev_score', 0))
-    asgn  = float(student.get('assignments_completed', 0))
+_REQUIRED_FEATURES = ["attendance", "test_score", "assignment_submitted"]
 
-    strengths  = []
-    weaknesses = []
-    suggestions = []
+_DEFAULTS: dict[str, Any] = {
+    "attendance":           0.0,
+    "test_score":           0.0,
+    "assignment_submitted": 0.0,
+    "name":                 "Unknown",
+    "batch":                "Unknown",
+}
 
-    if att >= 80:   strengths.append('Excellent attendance')
-    elif att >= 60: strengths.append('Decent attendance')
-    else:           weaknesses.append('Poor attendance'); suggestions.append('Improve attendance to at least 75%')
 
-    if study >= 15:  strengths.append('Strong study hours')
-    elif study >= 8: strengths.append('Moderate study time')
-    else:            weaknesses.append('Low study hours'); suggestions.append('Increase weekly study hours to 15+')
+# ---------------------------------------------------------------------------
+# CSV helpers
+# ---------------------------------------------------------------------------
 
-    if prev >= 70:   strengths.append('Good academic history')
-    elif prev >= 50: strengths.append('Average academic history')
-    else:            weaknesses.append('Low previous score'); suggestions.append('Focus on fundamentals and revision')
-
-    if asgn >= 8:   strengths.append('Consistent assignment submission')
-    elif asgn >= 5: strengths.append('Moderate assignment completion')
-    else:           weaknesses.append('Missing assignments'); suggestions.append('Complete all assignments on time')
-
-    if not suggestions:
-        suggestions.append('Keep up the excellent work!')
-
-    return {
-        'performance_score': score,
-        'category':          cat,
-        'strengths':         strengths,
-        'weaknesses':        weaknesses,
-        'suggestions':       suggestions,
-        'score_breakdown': {
-            'attendance_contribution':   round(att * 0.30, 2),
-            'study_contribution':        round(min(study * 1.5, 25), 2),
-            'prev_score_contribution':   round(prev * 0.30, 2),
-            'assignments_contribution':  round(min(asgn * 2, 15), 2),
-        }
-    }
-
-def run_analysis():
-    if not os.path.exists(INPUT_CSV):
-        return {'total_students':0,'weak_students_count':0,'average_students_count':0,'top_students_count':0}
+def _load() -> pd.DataFrame | None:
+    if not INPUT_CSV.exists():
+        print(f"[analyze] students.csv not found at {INPUT_CSV}")
+        return None
     df = pd.read_csv(INPUT_CSV)
-    if df.empty:
-        _write_empty_csvs(); return {'total_students':0,'weak_students_count':0,'average_students_count':0,'top_students_count':0}
+    for col, default in _DEFAULTS.items():
+        if col not in df.columns:
+            df[col] = default
+    return df
 
-    df['performance_score'] = df.apply(calculate_performance, axis=1)
-    df['category']          = df['performance_score'].apply(categorize)
 
-    weak_df = df[df['category']=='Weak']
-    avg_df  = df[df['category']=='Average']
-    top_df  = df[df['category']=='Top Performer']
+def _apply_predictions(df: pd.DataFrame) -> pd.DataFrame:
+    """Run bulk prediction and merge results back into the DataFrame."""
+    records = df.to_dict(orient="records")
+    results = predict_bulk(records)
+    results_df = pd.DataFrame(results)
 
-    weak_df.to_csv(WEAK_CSV,    index=False)
-    avg_df.to_csv(AVERAGE_CSV,  index=False)
-    top_df.to_csv(TOP_CSV,      index=False)
+    # Merge prediction columns back
+    for col in [
+        "prediction_result", "confidence", "risk_percentage",
+        "performance_score", "probabilities", "score_breakdown",
+        "strengths", "weaknesses", "suggestions",
+    ]:
+        if col in results_df.columns:
+            df[col] = results_df[col].values
+
+    # Human-readable category column
+    df["category"] = df["prediction_result"]
+    return df
+
+
+def _export_category_csvs(df: pd.DataFrame):
+    """Write filtered CSVs for each performance category."""
+    _DIR.mkdir(parents=True, exist_ok=True)
+    df[df["category"] == "Weak"].to_csv(WEAK_CSV,    index=False)
+    df[df["category"] == "Average"].to_csv(AVERAGE_CSV, index=False)
+    df[df["category"] == "Strong"].to_csv(TOP_CSV,    index=False)
+    print(f"[analyze] Category CSVs written to {_DIR}")
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def run_analysis() -> dict:
+    """
+    Full analysis: load CSV, predict, export category CSVs.
+    Returns summary statistics dict.
+    """
+    df = _load()
+    if df is None or df.empty:
+        return {"total": 0, "weak": 0, "average": 0, "strong": 0}
+
+    df = _apply_predictions(df)
+    _export_category_csvs(df)
+
+    # Persist enriched CSV
     df.to_csv(INPUT_CSV, index=False)
 
+    counts = df["category"].value_counts().to_dict()
     return {
-        'total_students':          len(df),
-        'weak_students_count':     len(weak_df),
-        'average_students_count':  len(avg_df),
-        'top_students_count':      len(top_df),
+        "total":   len(df),
+        "weak":    counts.get("Weak",    0),
+        "average": counts.get("Average", 0),
+        "strong":  counts.get("Strong",  0),
     }
 
-def get_weak_students():
-    if not os.path.exists(WEAK_CSV): return []
-    return pd.read_csv(WEAK_CSV).to_dict(orient='records')
 
-def get_top_students():
-    if not os.path.exists(TOP_CSV): return []
-    return pd.read_csv(TOP_CSV).to_dict(orient='records')
+def get_individual_analysis(student: dict) -> dict:
+    """
+    Analyse a single student dict.
+    Keys expected: attendance, test_score, assignment_submitted
+    """
+    a    = float(student.get("attendance",           0))
+    t    = float(student.get("test_score",           0))
+    asub = float(student.get("assignment_submitted", 0))
+    return predict_single(a, t, asub)
 
-def _write_empty_csvs():
-    headers = ['id','name','batch','attendance','study_hours','prev_score',
-               'assignments_completed','performance_score','category']
-    empty = pd.DataFrame(columns=headers)
-    for p in [WEAK_CSV, AVERAGE_CSV, TOP_CSV]:
-        empty.to_csv(p, index=False)
 
-if __name__ == '__main__':
-    print(run_analysis())
+def get_all_students() -> list[dict]:
+    df = _load()
+    if df is None or df.empty:
+        return []
+    if "prediction_result" not in df.columns:
+        df = _apply_predictions(df)
+    return df.to_dict(orient="records")
+
+
+def get_risk_summary() -> dict:
+    df = _load()
+    if df is None or df.empty:
+        return {"HIGH": 0, "MEDIUM": 0, "LOW": 0, "total": 0}
+    if "performance_score" not in df.columns:
+        df = _apply_predictions(df)
+
+    def risk(score):
+        if score < 40:
+            return "HIGH"
+        if score <= 75:
+            return "MEDIUM"
+        return "LOW"
+
+    df["risk_level"] = df["performance_score"].apply(risk)
+    counts = df["risk_level"].value_counts().to_dict()
+    return {
+        "HIGH":   counts.get("HIGH",   0),
+        "MEDIUM": counts.get("MEDIUM", 0),
+        "LOW":    counts.get("LOW",    0),
+        "total":  len(df),
+    }
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="EduTrack Dataset Analyzer")
+    parser.add_argument("--export",   action="store_true", help="Export category CSVs")
+    parser.add_argument("--student",  type=int, default=None,
+                        help="Row index (0-based) for individual analysis")
+    parser.add_argument("--summary",  action="store_true", help="Print risk summary")
+    args = parser.parse_args()
+
+    if args.student is not None:
+        df = _load()
+        if df is not None and args.student < len(df):
+            row    = df.iloc[args.student].to_dict()
+            result = get_individual_analysis(row)
+            print(f"\nStudent row {args.student}:")
+            print(json.dumps(result, indent=2, default=str))
+        else:
+            print("[analyze] Row index out of range.")
+    elif args.summary:
+        print(json.dumps(get_risk_summary(), indent=2))
+    else:
+        summary = run_analysis()
+        print("\n[analyze] Analysis complete:")
+        print(json.dumps(summary, indent=2))
+        if args.export:
+            print("[analyze] Category CSVs exported.")

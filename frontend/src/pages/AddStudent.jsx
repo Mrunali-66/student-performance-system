@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import api from '../utils/api'
+import api from '../services/api'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 
-const EMPTY = {name:'',batch:'',attendance:'',study_hours:'',prev_score:'',assignments_completed:''}
+const EMPTY = {name:'',batch:'',attendance:'',study_hours:'',prev_score:'',assignment_submitted:''}
 
 export default function AddStudent() {
   const [form,setForm]         = useState(EMPTY)
@@ -18,18 +18,19 @@ export default function AddStudent() {
   const validate = () => {
     const errs={}
     if(!form.name.trim()) errs.name='Required'
-    ;['attendance','study_hours','prev_score','assignments_completed'].forEach(f=>{
+    ;['attendance','study_hours','prev_score','assignment_submitted'].forEach(f=>{
       const v=parseFloat(form[f])
       if(isNaN(v)) errs[f]='Must be a number'
       else if(f==='attendance'&&(v<0||v>100)) errs[f]='0–100'
       else if(f==='prev_score'&&(v<0||v>100)) errs[f]='0–100'
+      else if(f==='assignment_submitted'&&(v<0||v>10)) errs[f]='0–10'
     })
     return errs
   }
 
   const predict = () => {
     const a=parseFloat(form.attendance),s=parseFloat(form.study_hours),
-          p=parseFloat(form.prev_score),asgn=parseFloat(form.assignments_completed)
+          p=parseFloat(form.prev_score),asgn=parseFloat(form.assignment_submitted)
     if([a,s,p,asgn].some(isNaN)){toast.error('Fill all numeric fields to predict');return}
     setPredicting(true)
     setTimeout(()=>{
@@ -43,7 +44,7 @@ export default function AddStudent() {
     const errs=validate()
     if(Object.keys(errs).length){setErrors(errs);return}
     setLoading(true)
-    try{await api.post('/students',form);toast.success('Student added!');navigate('/students')}
+    try{await api.post('/teacher/add-student', form);toast.success('Student added!');navigate('/students')}
     catch(err){toast.error(err.response?.data?.error||'Something went wrong')}
     finally{setLoading(false)}
   }
@@ -99,10 +100,10 @@ export default function AddStudent() {
                 {errors.prev_score&&<span className="err-msg">{errors.prev_score}</span>}
               </div>
               <div className="field">
-                <label>Assignments Completed</label>
-                <input name="assignments_completed" type="number" min="0" step="1"
-                  value={form.assignments_completed} onChange={handle} placeholder="e.g. 8" className={errors.assignments_completed?'err':''}/>
-                {errors.assignments_completed&&<span className="err-msg">{errors.assignments_completed}</span>}
+                <label>Assignments Submitted (0–10)</label>
+                <input name="assignment_submitted" type="number" min="0" max="10" step="1"
+                  value={form.assignment_submitted} onChange={handle} placeholder="0–10" className={errors.assignment_submitted?'err':''}/>
+                {errors.assignment_submitted&&<span className="err-msg">{errors.assignment_submitted}</span>}
               </div>
             </div>
 

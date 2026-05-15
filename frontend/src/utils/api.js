@@ -1,3 +1,5 @@
-import axios from 'axios'
-const api = axios.create({ baseURL: 'http://localhost:5000', timeout: 10000 })
-export default api
+/**
+ * src/utils/api.js — backwards-compat re-export.
+ * All new code should import from '../services/api'.
+ */
+export { default, setAuthToken, setLogoutCallback } from '../services/api'

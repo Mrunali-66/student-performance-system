@@ -1,157 +1,172 @@
-import sys, os
-# Ensure project root (parent of backend/) is on path so `ml` package is found
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-
+# routes/student_routes.py
 from flask import Blueprint, request, jsonify
-import psycopg2.extras
-from models.db import get_connection
-from utils.csv_handler import sync_csv_from_db
-from ml.analyze_students import (run_analysis, get_weak_students,
-                                  get_top_students, get_individual_analysis,
-                                  calculate_performance, categorize)
+from flask_jwt_extended import get_jwt_identity
+from database import db
+from models.user import User
+from models.student_performance import StudentPerformance
+from middleware.rbac import student_required
+from ml.predictor import predict_single
 
-student_bp = Blueprint('students', __name__)
+student_bp = Blueprint("student", __name__)
 
-def _fetch_all(conn):
-    with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute("SELECT * FROM students ORDER BY id")
-        return [dict(r) for r in cur.fetchall()]
 
-def _sync_and_analyse(conn):
-    students = _fetch_all(conn)
-    sync_csv_from_db(students)
-    summary = run_analysis()
-    import pandas as pd
-    csv_path = os.path.join(os.path.dirname(__file__), '..', '..', 'dataset', 'students.csv')
-    if os.path.exists(csv_path):
-        df = pd.read_csv(csv_path)
-        with conn.cursor() as cur:
-            for _, row in df.iterrows():
-                cur.execute("UPDATE students SET performance_score=%s, category=%s WHERE id=%s",
-                    (row.get('performance_score', 0), row.get('category', 'Unanalyzed'), int(row['id'])))
-        conn.commit()
-    return summary
+def _get_my_record(user_id: int):
+    user = User.query.get(int(user_id))
+    if not user:
+        return None, None
+    perf = StudentPerformance.query.filter_by(student_id=int(user_id)).first()
+    return user, perf
 
-@student_bp.route('/students', methods=['POST'])
-def add_student():
-    data = request.get_json()
-    required = ['name', 'attendance', 'study_hours', 'prev_score', 'assignments_completed']
-    for f in required:
-        if f not in data or data[f] == '':
-            return jsonify({'error': f'Missing field: {f}'}), 400
+
+def _run_ml(perf: StudentPerformance) -> dict:
+    return predict_single(
+        attendance=perf.attendance       or 0.0,
+        study_hours=perf.study_hours     or 0.0,
+        test_score=perf.test_score       or 0.0,
+        assignment_score=perf.assignment_score or 0.0,
+    )
+
+
+def _empty_record(user):
+    return {
+        "id": user.id, "username": user.username, "name": user.username,
+        "branch": user.branch, "batch": user.branch, "role": user.role,
+        "attendance": 0, "study_hours": 0,
+        "test_score": 0, "prev_score": 0, "internal_marks": 0,
+        "assignment_score": 0, "assignments_completed": 0,
+        "prediction_result": "Unanalyzed", "category": "Unanalyzed",
+        "risk_level": "Unanalyzed", "risk_percentage": 0,
+        "performance_score": 0, "predicted_performance": 0,
+        "analysis": None,
+    }
+
+
+def _safe_float(value):
+    """Convert value to float, return None if blank or unconvertible."""
+    if value is None:
+        return None
     try:
-        conn = get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""INSERT INTO students
-                (name, batch, attendance, study_hours, prev_score, assignments_completed)
-                VALUES (%s, %s, %s, %s, %s, %s) RETURNING *""",
-                (data['name'].strip(), data.get('batch', '').strip(),
-                 float(data['attendance']), float(data['study_hours']),
-                 float(data['prev_score']), float(data['assignments_completed'])))
-            new_student = dict(cur.fetchone())
-        conn.commit()
-        summary = _sync_and_analyse(conn)
-        conn.close()
-        return jsonify({'student': new_student, 'analysis': summary}), 201
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return float(value)
+    except (ValueError, TypeError):
+        return None
 
-@student_bp.route('/students', methods=['GET'])
-def get_students():
-    try:
-        conn = get_connection()
-        students = _fetch_all(conn)
-        conn.close()
-        return jsonify(students), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
-@student_bp.route('/students/<int:sid>', methods=['GET'])
-def get_student(sid):
-    try:
-        conn = get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM students WHERE id=%s", (sid,))
-            s = cur.fetchone()
-        conn.close()
-        if not s:
-            return jsonify({'error': 'Not found'}), 404
-        return jsonify(dict(s)), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+def _resolve_test_score(data: dict, current: float) -> float:
+    for key in ("test_score", "prev_score", "internal_marks"):
+        if key in data:
+            v = _safe_float(data[key])
+            if v is not None:
+                return v
+    return current
 
-@student_bp.route('/students/<int:sid>/analysis', methods=['GET'])
-def individual_analysis(sid):
-    try:
-        conn = get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SELECT * FROM students WHERE id=%s", (sid,))
-            s = cur.fetchone()
-        conn.close()
-        if not s:
-            return jsonify({'error': 'Student not found'}), 404
-        analysis = get_individual_analysis(dict(s))
-        return jsonify({**dict(s), **analysis}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
-@student_bp.route('/students/<int:sid>', methods=['PUT'])
-def update_student(sid):
-    data = request.get_json()
-    try:
-        conn = get_connection()
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""UPDATE students SET name=%s, batch=%s, attendance=%s,
-                study_hours=%s, prev_score=%s, assignments_completed=%s
-                WHERE id=%s RETURNING *""",
-                (data['name'].strip(), data.get('batch', '').strip(),
-                 float(data['attendance']), float(data['study_hours']),
-                 float(data['prev_score']), float(data['assignments_completed']), sid))
-            updated = cur.fetchone()
-        conn.commit()
-        if not updated:
-            conn.close()
-            return jsonify({'error': 'Not found'}), 404
-        summary = _sync_and_analyse(conn)
-        conn.close()
-        return jsonify({'student': dict(updated), 'analysis': summary}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+def _resolve_assignment_score(data: dict, current: float) -> float:
+    for key in ("assignment_score", "assignments_completed", "assignment_submitted"):
+        if key in data:
+            v = _safe_float(data[key])
+            if v is not None:
+                return v
+    return current
 
-@student_bp.route('/students/<int:sid>', methods=['DELETE'])
-def delete_student(sid):
-    try:
-        conn = get_connection()
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM students WHERE id=%s RETURNING id", (sid,))
-            deleted = cur.fetchone()
-        conn.commit()
-        if not deleted:
-            conn.close()
-            return jsonify({'error': 'Not found'}), 404
-        summary = _sync_and_analyse(conn)
-        conn.close()
-        return jsonify({'message': 'Deleted', 'analysis': summary}), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
 
-@student_bp.route('/analysis', methods=['GET'])
-def get_analysis():
-    try:
-        return jsonify(run_analysis()), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# ── GET /student/me ────────────────────────────────────────────────────────────
 
-@student_bp.route('/weak-students', methods=['GET'])
-def weak_students():
-    try:
-        return jsonify(get_weak_students()), 200
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+@student_bp.route("/student/me", methods=["GET"])
+@student_required
+def student_me():
+    user_id = get_jwt_identity()
+    user, perf = _get_my_record(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    if perf is None:
+        return jsonify(_empty_record(user)), 200
+    analysis = _run_ml(perf)
+    result = perf.to_dict(user=user, analysis=analysis)
+    result["analysis"] = analysis
+    return jsonify(result), 200
 
-@student_bp.route('/top-students', methods=['GET'])
-def top_students():
+
+# ── GET /student/report ────────────────────────────────────────────────────────
+
+@student_bp.route("/student/report", methods=["GET"])
+@student_required
+def student_report():
+    user_id = get_jwt_identity()
+    user, perf = _get_my_record(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    if perf is None:
+        return jsonify(_empty_record(user)), 200
+    analysis = _run_ml(perf)
+    result = perf.to_dict(user=user, analysis=analysis)
+    result["analysis"] = analysis
+    return jsonify(result), 200
+
+
+# ── GET /student/dashboard ─────────────────────────────────────────────────────
+
+@student_bp.route("/student/dashboard", methods=["GET"])
+@student_required
+def student_dashboard():
+    user_id = get_jwt_identity()
+    user, perf = _get_my_record(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+    if perf is None:
+        return jsonify(_empty_record(user)), 200
+    analysis = _run_ml(perf)
+    result = perf.to_dict(user=user, analysis=analysis)
+    result["analysis"] = analysis
+    return jsonify(result), 200
+
+
+# ── PUT /student/update ────────────────────────────────────────────────────────
+
+@student_bp.route("/student/update", methods=["PUT"])
+@student_required
+def student_update():
+    user_id = get_jwt_identity()
+    data = request.get_json(silent=True) or {}
+
+    user, perf = _get_my_record(user_id)
+    if not user:
+        return jsonify({"error": "User not found."}), 404
+
+    if perf is None:
+        perf = StudentPerformance(
+            student_id=int(user_id),
+            username=user.username,
+            attendance=0.0, study_hours=0.0,
+            test_score=0.0, assignment_score=0.0,
+        )
+        db.session.add(perf)
+
+    if "attendance" in data:
+        v = _safe_float(data["attendance"])
+        if v is not None:
+            perf.attendance = v
+    if "study_hours" in data:
+        v = _safe_float(data["study_hours"])
+        if v is not None:
+            perf.study_hours = v
+
+    perf.test_score       = _resolve_test_score(data, perf.test_score or 0.0)
+    perf.assignment_score = _resolve_assignment_score(data, perf.assignment_score or 0.0)
+
+    # Safety: ensure no None reaches ML
+    perf.attendance       = perf.attendance       or 0.0
+    perf.study_hours      = perf.study_hours      or 0.0
+    perf.test_score       = perf.test_score       or 0.0
+    perf.assignment_score = perf.assignment_score or 0.0
+
     try:
-        return jsonify(get_top_students()), 200
+        analysis = _run_ml(perf)
+        perf.prediction_result = analysis["prediction_result"]
+        perf.risk_percentage   = analysis["risk_percentage"]
+        db.session.commit()
+        result = perf.to_dict(user=user, analysis=analysis)
+        result["analysis"] = analysis
+        return jsonify({"message": "Updated successfully.", "record": result, "analysis": analysis}), 200
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

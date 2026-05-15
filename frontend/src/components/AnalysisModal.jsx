@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import api from '../utils/api'
+import api from '../services/api'
 
 function ScoreRing({ score }) {
   const color = score >= 80 ? 'var(--green)' : score >= 65 ? 'var(--cyan)' : score >= 50 ? 'var(--yellow)' : 'var(--red)'
@@ -31,7 +31,7 @@ export default function AnalysisModal({ studentId, onClose }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get(`/students/${studentId}/analysis`)
+    api.get(`/teacher/student-report/${studentId}`)
       .then(r => setData(r.data))
       .finally(() => setLoading(false))
   }, [studentId])
@@ -79,7 +79,7 @@ export default function AnalysisModal({ studentId, onClose }) {
                   { label: 'Attendance',    val: data.attendance,            max: 100, color: 'var(--cyan)'   },
                   { label: 'Study Hours/wk',val: data.study_hours,           max: 40,  color: 'var(--blue)'   },
                   { label: 'Prev Score',    val: data.prev_score,            max: 100, color: 'var(--purple)' },
-                  { label: 'Assignments',   val: data.assignments_completed, max: 15,  color: 'var(--green)'  },
+                  { label: 'Assign. Submitted', val: data.assignment_submitted ?? data.assignments_completed, max: 10,  color: 'var(--green)'  },
                 ].map(row => (
                   <div key={row.label} className="score-meta-row">
                     <div className="score-meta-label" style={{ minWidth: 110 }}>{row.label}</div>
