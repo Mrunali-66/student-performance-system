@@ -1,5 +1,6 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
-13,Aditi Joshi,Python Development,40.0,6.0,42.0,3.0,39.6,Weak
 14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,17.0,Weak
 16,Pranali Patil,Java Development,20.0,2.0,15.0,1.0,15.5,Weak
 27,Sujay Mane,Java Development,20.0,1.0,18.0,1.0,14.9,Weak
+34,Shruti Kadam,Machine Learning,33.0,6.0,40.0,2.0,34.9,Weak
+36,Ranveer Mane,Java Development,20.0,5.0,40.0,6.0,37.5,Weak

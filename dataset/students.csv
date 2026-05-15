@@ -1,7 +1,7 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
-4,Mrunali Maheshsing Hajare,Data Science,82.0,18.0,85.0,8.0,90.1,Top Performer
+4,Mrunali Hajare,Data Science,80.0,18.0,85.0,8.0,89.5,Top Performer
 10,Anjali Babar,Python Development,30.0,14.0,66.0,9.0,64.8,Average
-13,Aditi Joshi,Python Development,40.0,6.0,42.0,3.0,39.6,Weak
+13,Aditi Joshi,Python Development,42.0,6.0,42.0,3.0,40.2,Average
 14,Kiran Pawar,Java Development,25.0,2.0,15.0,1.0,17.0,Weak
 15,Sanjana Patil,Java Development,50.0,15.0,65.0,6.0,69.0,Average
 16,Pranali Patil,Java Development,20.0,2.0,15.0,1.0,15.5,Weak
@@ -10,3 +10,10 @@ id,name,batch,attendance,study_hours,prev_score,assignments_completed,performanc
 25,Payal Babar,Data Science,40.0,6.5,60.0,4.0,47.75,Average
 26,Shweta  Kumbhar,Machine Learning,45.0,7.5,56.0,1.0,43.55,Average
 27,Sujay Mane,Java Development,20.0,1.0,18.0,1.0,14.9,Weak
+28,Pranoti Pawar,Java Development,70.0,14.0,80.0,7.0,80.0,Top Performer
+29,Pranita More,Data Science,80.0,12.0,66.0,2.0,65.8,Average
+30,Dia Shaikh,Python Development,56.0,10.0,68.0,3.0,58.2,Average
+31,Madhuri Chaudhari,Machine Learning,60.0,14.0,65.0,5.0,68.5,Average
+34,Shruti Kadam,Machine Learning,33.0,6.0,40.0,2.0,34.9,Weak
+35,Aniket Kolekar,Data science,40.0,4.0,55.0,5.0,44.5,Average
+36,Ranveer Mane,Java Development,20.0,5.0,40.0,6.0,37.5,Weak

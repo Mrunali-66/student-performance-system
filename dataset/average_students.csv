@@ -1,5 +1,10 @@
 id,name,batch,attendance,study_hours,prev_score,assignments_completed,performance_score,category
 10,Anjali Babar,Python Development,30.0,14.0,66.0,9.0,64.8,Average
+13,Aditi Joshi,Python Development,42.0,6.0,42.0,3.0,40.2,Average
 15,Sanjana Patil,Java Development,50.0,15.0,65.0,6.0,69.0,Average
 25,Payal Babar,Data Science,40.0,6.5,60.0,4.0,47.75,Average
 26,Shweta  Kumbhar,Machine Learning,45.0,7.5,56.0,1.0,43.55,Average
+29,Pranita More,Data Science,80.0,12.0,66.0,2.0,65.8,Average
+30,Dia Shaikh,Python Development,56.0,10.0,68.0,3.0,58.2,Average
+31,Madhuri Chaudhari,Machine Learning,60.0,14.0,65.0,5.0,68.5,Average
+35,Aniket Kolekar,Data science,40.0,4.0,55.0,5.0,44.5,Average
